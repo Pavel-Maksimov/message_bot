@@ -11,20 +11,15 @@ dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
 
-# conn = DbConnector(**db)
-
 db = {
     'user': os.environ.get('DB_USER'),
     'password': os.environ.get('DB_PASSWORD'),
     'host': os.environ.get('DB_HOST')
 }
 
-cnx = mysql.connector.connect(**db)
-cursor = cnx.cursor()
-
 
 class DbConnector:
-    def __init__(self, user, password, host, database):
+    def __init__(self, user, password, host, database=None):
         self.user = user
         self.password = password
         self.host = host
@@ -48,7 +43,6 @@ class DbConnector:
             else:
                 print(err)
         return cnx
-
 
     def create_database(self, db_name):
         cnx = self._create_connection()
@@ -94,12 +88,26 @@ class DbConnector:
         result = []
         for name in tags_names:
             tags_query = (
-                'SELECT * FROM tags '
+                'SELECT definition FROM tags '
                 'WHERE name="{0}"'
             )
             cursor.execute(tags_query.format(name))
-            for row in cursor:
-                result.append(row)
+            result.append(next(cursor)[0])
+        cursor.close()
+        cnx.close()
+        return result
+
+    def _get_tag_id(self, *tags_names):
+        cnx = self._create_connection()
+        cursor = cnx.cursor()
+        result = []
+        for name in tags_names:
+            tags_query = (
+                'SELECT id FROM tags '
+                'WHERE name="{0}"'
+            )
+            cursor.execute(tags_query.format(name))
+            result.append(next(cursor)[0])
         cursor.close()
         cnx.close()
         return result
@@ -120,9 +128,8 @@ class DbConnector:
             'WHERE id={1};'
         )
         cursor.execute(add_last_message.format(message_id, user_id))
-        tags = self.tag(*tags_names)
-        for tag in tags:
-            tag_id = tag[0]
+        tags = self._get_tag_id(*tags_names)
+        for tag_id in tags:
             self._add_message_tag(cursor, message_id, tag_id)
         cnx.commit()
         cursor.close()
@@ -159,7 +166,56 @@ class DbConnector:
             'WHERE users.id={0};'
         )
         cursor.execute(text_query.format(user_id))
-        result = [row for row in cursor]
+        text, = next(cursor)
+        cursor.close()
+        cnx.close()
+        return text
+
+    def read(self, user_id, message_id):
+        cnx = self._create_connection()
+        cursor = cnx.cursor()
+        text_query = (
+            'SELECT text, user_id FROM messages '
+            'WHERE id={0};'
+        )
+        cursor.execute(text_query.format(message_id))
+        try:
+            text, owner_id = next(cursor)
+        except StopIteration:
+            cursor.close()
+            cnx.close()
+            return 'заметка {0} не найдена'.format(message_id)
+        cursor.close()
+        cnx.close()
+        if user_id == owner_id:
+            return text
+        return ('заметка {0} принадлежит другому '
+                'пользователю').format(message_id)
+
+    def read_all(self, user_id):
+        cnx = self._create_connection()
+        cursor = cnx.cursor()
+        text_query = (
+            'SELECT text FROM messages '
+            'WHERE user_id={0};'
+        )
+        cursor.execute(text_query.format(user_id))
+        result = [row[0] for row in cursor]
+        cursor.close()
+        cnx.close()
+        return result
+
+    def read_tag(self, user_id, tag_name):
+        cnx = self._create_connection()
+        cursor = cnx.cursor()
+        text_query = (
+            'SELECT text FROM messages '
+            'JOIN messages_tags ON messages.id = messages_tags.message_id '
+            'JOIN tags ON tags.id = messages_tags.tag_id '
+            'WHERE user_id={0} AND tags.name="{1}";'
+        )
+        cursor.execute(text_query.format(user_id, tag_name))
+        result = [row[0] for row in cursor]
         cursor.close()
         cnx.close()
         return result
