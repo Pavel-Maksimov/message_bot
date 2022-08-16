@@ -19,7 +19,7 @@ Message Bot - это Telegram бот, который может сохранят
 Для развёртывания проекта выполните следующие действия:<br>
 Клонируйте репозиторий:
 ```
-git clone https://github.com/Pavel-Maksimov/recipies
+git clone https://github.com/Pavel-Maksimov/message_bot.git
 ```
 В директории message_bot создайте файл .env со следующим содержимим:
 ```
