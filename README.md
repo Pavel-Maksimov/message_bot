@@ -47,7 +47,7 @@ source venv/bin/activate
 ```
 Для создания базы данных и необходимых таблиц выполните команду:
 ```
-(venv)$python start.py
+(venv)$python create_tables.py
 ```
 Для запуска бота выполните команду:
 ```
