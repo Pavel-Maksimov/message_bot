@@ -137,18 +137,17 @@ class DbConnector:
         cursor = self.cnx.cursor()
         check_user_exists = (
             'SELECT count(*) FROM users '
-            'WHERE id=%s'
+            'WHERE id=%s;'
         )
         cursor.execute(check_user_exists, (user_id,))
         count = int(next(cursor)[0])
-        logger.info(count)
         if count != 0:
             cursor.close()
             return
         add_user = (
             'INSERT INTO users (id, first_addressing) '
             'VALUES '
-            '(%s, %s);'
+            '    (%s, %s);'
         )
         cursor.execute(add_user, (user_id, date))
         self.cnx.commit()
@@ -160,7 +159,7 @@ class DbConnector:
         for name in tags_names:
             tags_query = (
                 'SELECT CONCAT("%23", name, " - ", definition) FROM tags '
-                'WHERE name=%s'
+                'WHERE name=%s;'
             )
             cursor.execute(tags_query, (name,))
             try:
@@ -176,7 +175,7 @@ class DbConnector:
         for name in tags_names:
             tags_query = (
                 'SELECT id FROM tags '
-                'WHERE name=%s'
+                'WHERE name=%s;'
             )
             cursor.execute(tags_query, (name,))
             try:
